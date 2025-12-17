@@ -16,9 +16,10 @@ import numpy as np
 from pathlib import Path
 from typing import Optional, Literal
 
-from bokeh.plotting import figure, save, show as bokeh_show
+import tempfile
+from bokeh.plotting import figure, show as bokeh_show
 from bokeh.models import ColorBar, LinearColorMapper, BasicTicker
-from bokeh.io import export_png, output_file
+from bokeh.io import export_png, output_file, reset_output
 from bokeh.palettes import (
     Viridis256, Plasma256, Inferno256, Magma256, Cividis256,
     Greys256, Blues256, Greens256, Oranges256, Reds256, Purples256,
@@ -259,37 +260,26 @@ def create_bokeh_contour(
         )
         filepath = output_dir / filename
         
-        # PNG保存を試みる（seleniumとwebdriverが必要）
+        # PNG保存（seleniumとwebdriverが必要）
         # 公式ドキュメント: https://docs.bokeh.org/en/latest/docs/user_guide/output/export.html
-        png_saved = False
-        
-        # webdriver-managerを使用してPNG出力を試みる
         try:
             driver = _get_webdriver()
             if driver is not None:
                 export_png(p, filename=str(filepath), webdriver=driver)
-                print(f"Saved: {filepath}")
-                png_saved = True
-        except Exception:
-            pass
-        
-        # webdriver-managerが失敗した場合、通常のexport_pngを試みる
-        if not png_saved:
-            try:
+            else:
                 export_png(p, filename=str(filepath))
-                print(f"Saved: {filepath}")
-                png_saved = True
-            except Exception as e:
-                # HTMLで保存（PNG出力に必要なドライバーがない場合）
-                html_path = filepath.with_suffix('.html')
-                output_file(str(html_path))
-                save(p)
-                print(f"Saved as HTML (PNG export failed: {e})")
-                print("PNG出力には selenium と webdriver-manager が必要です:")
-                print("  pip install selenium webdriver-manager")
+            print(f"Saved: {filepath}")
+        except Exception as e:
+            print(f"PNG export failed: {e}")
+            print("PNG出力には selenium と webdriver-manager が必要です:")
+            print("  pip install selenium webdriver-manager")
     
     if show:
-        bokeh_show(p)
+        # 一時ファイルにHTMLを出力してブラウザで表示（カレントディレクトリを汚さない）
+        with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as tmp:
+            output_file(tmp.name)
+            bokeh_show(p)
+            reset_output()
     
     return p
 
