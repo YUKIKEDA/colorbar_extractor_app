@@ -181,7 +181,7 @@ class ColorbarExtractorApp:
 
     def process_roi(self, roi):
         """ROIを処理して抽出画像を生成"""
-        
+
         if roi is None or roi.size == 0:
             return
 
@@ -219,7 +219,6 @@ class ColorbarExtractorApp:
                 final_w = max_x - min_x
                 final_h = max_y - min_y
                 
-                # --- 【ここが修正ポイント】 ---
                 # 枠線を除去するために、内側へ食い込ませるピクセル数
                 # 画像の黒枠の太さに合わせて調整 (通常は 1〜3 で綺麗になります)
                 margin = 2 
