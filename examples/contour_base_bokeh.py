@@ -1,5 +1,15 @@
 """
 Bokeh用コンター図生成ベースモジュール
+
+PNG出力には以下の依存関係が必要です：
+- selenium
+- chromedriver-binary (Chrome用) または geckodriver (Firefox用)
+
+インストール方法:
+    pip install selenium chromedriver-binary
+
+注意: chromedriver-binaryはインストールされているChromeのバージョンと
+互換性のあるバージョンを選択する必要があります。
 """
 
 import numpy as np
@@ -198,16 +208,19 @@ def create_bokeh_contour(
         )
         filepath = output_dir / filename
         
-        # PNG保存を試みる（seleniumまたはchromedriverが必要）
+        # PNG保存を試みる（seleniumとwebdriverが必要）
+        # 公式ドキュメント: https://docs.bokeh.org/en/latest/docs/user_guide/output/export.html
         try:
             export_png(p, filename=str(filepath))
             print(f"Saved: {filepath}")
-        except Exception:
-            # HTMLで保存
+        except Exception as e:
+            # HTMLで保存（PNG出力に必要なドライバーがない場合）
             html_path = filepath.with_suffix('.html')
             output_file(str(html_path))
             save(p)
-            print(f"Saved as HTML (PNG export not available): {html_path}")
+            print(f"Saved as HTML (PNG export failed: {e})")
+            print("PNG出力には selenium と chromedriver-binary が必要です:")
+            print("  pip install selenium chromedriver-binary")
     
     if show:
         bokeh_show(p)
@@ -225,4 +238,3 @@ if __name__ == '__main__':
         shape='circle',
         show=True
     )
-

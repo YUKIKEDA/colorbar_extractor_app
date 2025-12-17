@@ -118,10 +118,12 @@ def create_plotly_contour(
     # Plotlyのカラースケールに変換
     plotly_colorscale = get_plotly_colorscale(colormap)
     
-    # カラーバーの設定
+    # カラーバーの設定（新しいPlotly API対応）
     colorbar_config = {
-        'title': 'Value',
-        'titleside': 'right' if colorbar_orientation == 'vertical' else 'top',
+        'title': {
+            'text': 'Value',
+            'side': 'right' if colorbar_orientation == 'vertical' else 'top',
+        },
         'thickness': 20,
         'len': 0.8,
     }
@@ -134,6 +136,7 @@ def create_plotly_contour(
             'yanchor': 'bottom',
             'x': 0.5,
             'xanchor': 'center',
+            'title': {'text': 'Value', 'side': 'top'},
         })
     elif colorbar_position == 'bottom':
         colorbar_config.update({
@@ -142,6 +145,7 @@ def create_plotly_contour(
             'yanchor': 'top',
             'x': 0.5,
             'xanchor': 'center',
+            'title': {'text': 'Value', 'side': 'bottom'},
         })
     elif colorbar_position == 'left':
         colorbar_config.update({
@@ -150,6 +154,7 @@ def create_plotly_contour(
             'xanchor': 'right',
             'y': 0.5,
             'yanchor': 'middle',
+            'title': {'text': 'Value', 'side': 'right'},
         })
     else:  # right
         colorbar_config.update({
@@ -158,6 +163,7 @@ def create_plotly_contour(
             'xanchor': 'left',
             'y': 0.5,
             'yanchor': 'middle',
+            'title': {'text': 'Value', 'side': 'right'},
         })
     
     # コンター図の作成
