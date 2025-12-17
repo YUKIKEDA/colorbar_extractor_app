@@ -18,6 +18,7 @@ class ColorbarExtractorApp:
         self.start_y = None
         self.rect_id = None
         self.extracted_cv_image = None
+        self.margin_var = tk.IntVar(value=2)  # マージンのデフォルト値
 
         # --- UI レイアウト ---
         
@@ -33,6 +34,16 @@ class ColorbarExtractorApp:
 
         btn_save = tk.Button(control_frame, text="抽出画像を保存", command=self.save_image, width=15, bg="#4CAF50", fg="white")
         btn_save.pack(side=tk.RIGHT, padx=20)
+
+        # マージン設定エリア
+        margin_frame = tk.Frame(control_frame, bg="#f0f0f0")
+        margin_frame.pack(side=tk.RIGHT, padx=10)
+        
+        tk.Label(margin_frame, text="マージン:", bg="#f0f0f0", fg="#333").pack(side=tk.LEFT)
+        margin_spinbox = tk.Spinbox(margin_frame, from_=0, to=20, width=4, 
+                                     textvariable=self.margin_var, font=("Arial", 10))
+        margin_spinbox.pack(side=tk.LEFT, padx=5)
+        tk.Label(margin_frame, text="px", bg="#f0f0f0", fg="#333").pack(side=tk.LEFT)
 
         # 中央: 画像表示エリア (Canvas)
         self.canvas_frame = tk.Frame(root)
@@ -221,7 +232,7 @@ class ColorbarExtractorApp:
                 
                 # 枠線を除去するために、内側へ食い込ませるピクセル数
                 # 画像の黒枠の太さに合わせて調整 (通常は 1〜3 で綺麗になります)
-                margin = 2 
+                margin = self.margin_var.get()
 
                 # 切り抜きサイズがマージンより大きいか確認（エラー防止）
                 if final_w > margin * 2 and final_h > margin * 2:
