@@ -1,19 +1,41 @@
-# Colorbar Extractor App
+# Colorbar & Contour Extractor App
 
-コンター図からカラーバーを自動検出・抽出するGUIツールです。
+コンター図からカラーバーやコンター領域を抽出するGUIツール群です。
 
 ## 概要
 
-CAE解析結果やグラフ画像からカラーバー部分のみを切り出して保存できます。自動検出機能とピクセル単位の微調整機能を備えており、正確なカラーバー抽出が可能です。
+CAE解析結果やグラフ画像から、カラーバー部分やコンター領域のみを切り出して保存できます。機械学習用のデータセット作成などに活用できます。
 
-## 機能
+## アプリケーション一覧
 
-- **画像読み込み**: PNG, JPG, JPEG, BMP形式に対応
-- **範囲選択**: ドラッグ操作でカラーバー周辺を大まかに選択
-- **自動検出**: 彩度ベースのアルゴリズムでカラーバー領域を自動検出
-- **微調整**: 上下左右のマージンをピクセル単位で調整可能
-- **ズームプレビュー**: 1x〜10xのズーム機能で境界を確認
-- **保存**: PNG/JPG形式で抽出結果を保存
+### 1. カラーバー抽出ツール (`colorbar_extractor_app.py`)
+
+コンター図からカラーバー部分のみを自動検出・抽出します。
+
+**機能:**
+- 画像読み込み（PNG, JPG, JPEG, BMP）
+- ドラッグ操作でカラーバー周辺を選択
+- 彩度ベースの自動検出アルゴリズム
+- ピクセル単位の微調整（上下左右のマージン）
+- 1x〜10xのズームプレビュー
+- PNG/JPG形式で保存
+
+### 2. コンター領域抽出ツール (`contour_extractor_app.py`)
+
+コンター図から指定した領域のみを抽出し、外側を白塗りにします。
+
+**機能:**
+- 画像読み込み（PNG, JPG, JPEG, BMP, TIF）
+- **矩形選択**: ドラッグで矩形領域を選択
+- **フリーハンド選択**: クリックで自由な形状を描画
+- 複数領域の追加・削除
+- マスク適用でリアルタイムプレビュー
+- PNG/JPG/BMP形式で保存
+
+**用途:**
+- CAE内部コンター（cae_inner）: フリーハンドで複雑な形状を選択
+- CAE外部コンター（cae_outer）: 矩形選択で簡単に領域指定
+- 標準コンター: 矩形選択でコンター部分のみを抽出
 
 ## インストール
 
@@ -28,42 +50,59 @@ pip install -r requirements.txt
 
 ## 使用方法
 
-### アプリケーションの起動
+### カラーバー抽出ツール
 
 ```bash
 python src/colorbar_extractor_app.py
 ```
 
-### 操作手順
-
-1. **「画像を開く」** ボタンをクリックして画像を読み込む
-2. **ドラッグ操作** でカラーバー周辺を矩形選択
+**操作手順:**
+1. 「画像を開く」ボタンで画像を読み込む
+2. ドラッグ操作でカラーバー周辺を矩形選択
 3. 自動検出された結果が右側パネルにプレビュー表示
-4. 必要に応じて **境界線調整** でマージンを微調整
+4. 必要に応じて境界線調整でマージンを微調整
    - 正の値: 削る（内側に縮小）
    - 負の値: 広げる（外側に拡大）
-5. **「現在の状態で保存」** ボタンで抽出結果を保存
+5. 「現在の状態で保存」ボタンで保存
+
+### コンター領域抽出ツール
+
+```bash
+python src/contour_extractor_app.py
+```
+
+**操作手順:**
+1. 「画像を開く」ボタンで画像を読み込む
+2. ツールを選択（矩形 / フリーハンド）
+3. 領域を選択
+   - **矩形**: ドラッグで矩形を描画
+   - **フリーハンド**: クリックで点を追加（ダブルクリックで確定）
+4. 「領域を追加」ボタンで領域を確定
+5. 必要に応じて複数領域を追加
+6. 「マスク適用」ボタンでプレビューを確認
+7. 「保存」ボタンで結果を保存
 
 ## ファイル構成
 
 ```
 colorbar_extractor_app/
-├── README.md                 # このファイル
-├── requirements.txt          # 依存パッケージ
+├── README.md                      # このファイル
+├── requirements.txt               # 依存パッケージ
 ├── src/
-│   └── colorbar_extractor_app.py  # メインアプリケーション
-└── examples/                 # サンプルコンター図生成スクリプト
-    ├── README.md             # examples用の詳細ドキュメント
+│   ├── colorbar_extractor_app.py  # カラーバー抽出ツール
+│   └── contour_extractor_app.py   # コンター領域抽出ツール
+└── examples/                      # サンプルコンター図生成スクリプト
+    ├── README.md                  # examples用の詳細ドキュメント
     ├── gen_example_contour.py
     ├── generate_all_contours.py
-    ├── contour_base_mpl.py   # Matplotlib用
-    ├── contour_base_plotly.py # Plotly用
-    ├── contour_base_bokeh.py  # Bokeh用
-    ├── contour_utils.py      # 共通ユーティリティ
-    ├── matplotlib/           # Matplotlibサンプル
-    ├── plotly/               # Plotlyサンプル
-    ├── bokeh/                # Bokehサンプル
-    └── output/               # 生成された画像の出力先
+    ├── contour_base_mpl.py        # Matplotlib用
+    ├── contour_base_plotly.py     # Plotly用
+    ├── contour_base_bokeh.py      # Bokeh用
+    ├── contour_utils.py           # 共通ユーティリティ
+    ├── matplotlib/                # Matplotlibサンプル
+    ├── plotly/                    # Plotlyサンプル
+    ├── bokeh/                     # Bokehサンプル
+    └── output/                    # 生成された画像の出力先
 ```
 
 ## サンプルコンター図の生成
