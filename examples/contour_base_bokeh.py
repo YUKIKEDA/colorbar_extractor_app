@@ -3,13 +3,13 @@ Bokeh用コンター図生成ベースモジュール
 
 PNG出力には以下の依存関係が必要です：
 - selenium
-- chromedriver-binary (Chrome用) または geckodriver (Firefox用)
+- webdriver-manager (推奨) または chromedriver-binary
 
 インストール方法:
-    pip install selenium chromedriver-binary
+    pip install selenium webdriver-manager
 
-注意: chromedriver-binaryはインストールされているChromeのバージョンと
-互換性のあるバージョンを選択する必要があります。
+webdriver-managerを使用すると、Chromeのバージョンに合った
+chromedriverを自動的にダウンロードして使用します。
 """
 
 import numpy as np
@@ -34,6 +34,39 @@ from contour_utils import (
     generate_filename,
     generate_random_offset
 )
+
+
+def _setup_chrome_driver():
+    """ChromeドライバーをセットアップしてWebDriverを返す"""
+    try:
+        from selenium import webdriver
+        from selenium.webdriver.chrome.service import Service
+        from selenium.webdriver.chrome.options import Options
+        from webdriver_manager.chrome import ChromeDriverManager
+        
+        options = Options()
+        options.add_argument('--headless=new')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
+        return driver
+    except Exception:
+        return None
+
+
+# グローバルなWebDriverインスタンス（再利用のため）
+_webdriver = None
+
+
+def _get_webdriver():
+    """WebDriverを取得（シングルトン）"""
+    global _webdriver
+    if _webdriver is None:
+        _webdriver = _setup_chrome_driver()
+    return _webdriver
 
 
 # Bokehで使用可能なパレットのマッピング
@@ -228,17 +261,32 @@ def create_bokeh_contour(
         
         # PNG保存を試みる（seleniumとwebdriverが必要）
         # 公式ドキュメント: https://docs.bokeh.org/en/latest/docs/user_guide/output/export.html
+        png_saved = False
+        
+        # webdriver-managerを使用してPNG出力を試みる
         try:
-            export_png(p, filename=str(filepath))
-            print(f"Saved: {filepath}")
-        except Exception as e:
-            # HTMLで保存（PNG出力に必要なドライバーがない場合）
-            html_path = filepath.with_suffix('.html')
-            output_file(str(html_path))
-            save(p)
-            print(f"Saved as HTML (PNG export failed: {e})")
-            print("PNG出力には selenium と chromedriver-binary が必要です:")
-            print("  pip install selenium chromedriver-binary")
+            driver = _get_webdriver()
+            if driver is not None:
+                export_png(p, filename=str(filepath), webdriver=driver)
+                print(f"Saved: {filepath}")
+                png_saved = True
+        except Exception:
+            pass
+        
+        # webdriver-managerが失敗した場合、通常のexport_pngを試みる
+        if not png_saved:
+            try:
+                export_png(p, filename=str(filepath))
+                print(f"Saved: {filepath}")
+                png_saved = True
+            except Exception as e:
+                # HTMLで保存（PNG出力に必要なドライバーがない場合）
+                html_path = filepath.with_suffix('.html')
+                output_file(str(html_path))
+                save(p)
+                print(f"Saved as HTML (PNG export failed: {e})")
+                print("PNG出力には selenium と webdriver-manager が必要です:")
+                print("  pip install selenium webdriver-manager")
     
     if show:
         bokeh_show(p)
