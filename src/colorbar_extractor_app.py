@@ -180,44 +180,58 @@ class ColorbarExtractorApp:
         self.start_x = None
 
     def process_roi(self, roi):
-        """
-        選択範囲(roi)から、OpenCVを使って
-        「カラーバーのみ（目盛り除去）」を抽出するロジック
-        """
-        
-        # 1. 彩度(Saturation)を利用して「色付き部分」のみをマスク
-        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        s_channel = hsv[:, :, 1] # 彩度チャンネル
-        
-        # 彩度しきい値 (0-255)。グレーや白黒は彩度が低い。
-        # 30〜50あたりが一般的ですが、薄い色も拾うなら低めに設定
-        _, binary = cv2.threshold(s_channel, 30, 255, cv2.THRESH_BINARY)
+        """ROIを処理して抽出画像を生成"""
+        if roi is None or roi.size == 0:
+            return
 
-        # 2. ノイズ除去（モルフォロジー演算）
-        # 小さなゴミを除去し、バーの塊をつなげる
-        kernel = np.ones((3, 3), np.uint8)
-        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel, iterations=1)
+        # 1. 彩度(Saturation)を利用してマスク作成
+        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+        s_channel = hsv[:, :, 1]
+        
+        # しきい値を少し下げる (薄い色も拾えるように 30 -> 15 程度に変更推奨)
+        _, binary = cv2.threshold(s_channel, 15, 255, cv2.THRESH_BINARY)
+
+        # 2. ノイズ除去（縦方向の連結を強化）
+        # 縦長のカーネルを使うと、縦に切れたバーがつながりやすくなる
+        kernel = np.ones((5, 3), np.uint8) 
         binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-        # 3. 最大輪郭の検出
+        # 3. 輪郭抽出
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        target_roi = roi # デフォルトは切り抜いただけのもの
+        target_roi = roi # デフォルト
 
         if contours:
-            # 面積が最大のものをカラーバーとみなす
-            max_cnt = max(contours, key=cv2.contourArea)
-            x, y, w, h = cv2.boundingRect(max_cnt)
+            # --- 全ての有効な輪郭を包含する矩形を計算する ---
+            
+            valid_rects = []
+            for cnt in contours:
+                x, y, w, h = cv2.boundingRect(cnt)
+                # 小さすぎるゴミ（ノイズ）は無視
+                if w * h > 50: 
+                    valid_rects.append((x, y, w, h))
 
-            # ゴミでないか確認（ある程度の大きさが必要）
-            if w > 5 and h > 5:
-                # 検出された領域で再クロップ
-                # 少しパディングを除去するか（オプション）
-                padding = 0 
-                if w > padding*2 and h > padding*2:
-                    target_roi = roi[y+padding:y+h-padding, x+padding:x+w-padding]
+            if valid_rects:
+                # 全ての矩形を含む最小の矩形 (Bounding Box) を求める
+                min_x = min([r[0] for r in valid_rects])
+                min_y = min([r[1] for r in valid_rects])
+                max_x = max([r[0] + r[2] for r in valid_rects])
+                max_y = max([r[1] + r[3] for r in valid_rects])
+
+                # 座標計算
+                final_x = min_x
+                final_y = min_y
+                final_w = max_x - min_x
+                final_h = max_y - min_y
+
+                # パディング除去（任意）
+                pad = 0
+                if final_w > pad*2 and final_h > pad*2:
+                    target_roi = roi[final_y+pad : final_y+final_h-pad, 
+                                     final_x+pad : final_x+final_w-pad]
                 else:
-                    target_roi = roi[y:y+h, x:x+w]
+                    target_roi = roi[final_y : final_y+final_h, 
+                                     final_x : final_x+final_w]
 
         self.extracted_cv_image = target_roi
         self.show_preview(target_roi)
