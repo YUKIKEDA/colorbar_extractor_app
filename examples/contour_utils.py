@@ -5,7 +5,7 @@
 
 import numpy as np
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Optional
 
 # カラーマップのリスト
 COLORMAPS = [
@@ -89,10 +89,35 @@ def generate_contour_data(
     return X, Y, Z
 
 
+def generate_random_offset(
+    max_offset: float = 1.0,
+    seed: Optional[int] = None
+) -> Tuple[float, float]:
+    """
+    ランダムなオフセット値を生成
+    
+    Args:
+        max_offset: 最大オフセット量（上下左右それぞれこの範囲内）
+        seed: 乱数シード（再現性のため）
+    
+    Returns:
+        (offset_x, offset_y) のタプル
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    
+    offset_x = np.random.uniform(-max_offset, max_offset)
+    offset_y = np.random.uniform(-max_offset, max_offset)
+    
+    return offset_x, offset_y
+
+
 def create_shape_mask(
     X: np.ndarray,
     Y: np.ndarray,
     shape: str = 'circle',
+    offset_x: float = 0.0,
+    offset_y: float = 0.0,
     **kwargs
 ) -> np.ndarray:
     """
@@ -101,37 +126,45 @@ def create_shape_mask(
     Args:
         X, Y: グリッドデータ
         shape: 形状タイプ ('circle', 'rectangle', 'ring', 'bracket', 'gear')
+        offset_x: X方向のオフセット量（マスク位置をずらす）
+        offset_y: Y方向のオフセット量（マスク位置をずらす）
         **kwargs: 形状固有のパラメータ
     
     Returns:
         マスク配列 (True = 形状内部)
     """
+    # オフセットを適用したグリッド座標
+    X_offset = X - offset_x
+    Y_offset = Y - offset_y
+    
     if shape == 'circle':
         radius = kwargs.get('radius', 2.0)
         center_x = kwargs.get('center_x', 0.0)
         center_y = kwargs.get('center_y', 0.0)
-        mask = (X - center_x)**2 + (Y - center_y)**2 <= radius**2
+        mask = (X_offset - center_x)**2 + (Y_offset - center_y)**2 <= radius**2
         
     elif shape == 'rectangle':
         width = kwargs.get('width', 4.0)
         height = kwargs.get('height', 3.0)
-        mask = (np.abs(X) <= width/2) & (np.abs(Y) <= height/2)
+        center_x = kwargs.get('center_x', 0.0)
+        center_y = kwargs.get('center_y', 0.0)
+        mask = (np.abs(X_offset - center_x) <= width/2) & (np.abs(Y_offset - center_y) <= height/2)
         
     elif shape == 'ring':
         outer_radius = kwargs.get('outer_radius', 2.5)
         inner_radius = kwargs.get('inner_radius', 1.0)
-        R = np.sqrt(X**2 + Y**2)
+        R = np.sqrt(X_offset**2 + Y_offset**2)
         mask = (R >= inner_radius) & (R <= outer_radius)
         
     elif shape == 'bracket':
         # L字型ブラケット
-        mask = ((np.abs(X) <= 2.5) & (Y >= -2.5) & (Y <= -1.0)) | \
-               ((X >= -2.5) & (X <= -1.0) & (np.abs(Y) <= 2.5))
+        mask = ((np.abs(X_offset) <= 2.5) & (Y_offset >= -2.5) & (Y_offset <= -1.0)) | \
+               ((X_offset >= -2.5) & (X_offset <= -1.0) & (np.abs(Y_offset) <= 2.5))
                
     elif shape == 'gear':
         # 歯車形状（簡易版）
-        R = np.sqrt(X**2 + Y**2)
-        theta = np.arctan2(Y, X)
+        R = np.sqrt(X_offset**2 + Y_offset**2)
+        theta = np.arctan2(Y_offset, X_offset)
         n_teeth = kwargs.get('n_teeth', 8)
         inner = 1.5
         tooth_depth = 0.5

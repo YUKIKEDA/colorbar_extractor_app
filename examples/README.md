@@ -201,6 +201,43 @@ python gen_example_contour.py --list-colormaps
 | `bracket` | L字型ブラケット |
 | `gear` | 歯車形状 |
 
+### ランダムオフセット（マスク位置のずらし）
+
+CAEタイプ（`cae_inner`, `cae_outer`）では、マスク位置をランダムにずらして画像の多様性を増やすことができます。
+
+```bash
+# ランダムオフセットを有効にして生成
+python generate_all_contours.py --random-offset --max-offset 1.5
+
+# 固定オフセットを指定（プログラムから使用）
+# offset_x=0.5, offset_y=-0.3 などを指定可能
+```
+
+| オプション | 説明 |
+|-----------|------|
+| `--random-offset`, `-r` | ランダムオフセットを有効化 |
+| `--max-offset`, `-m` | オフセットの最大量（デフォルト: 1.0） |
+
+**プログラムからの使用例：**
+
+```python
+from contour_base_mpl import create_matplotlib_contour
+
+# ランダムオフセット
+create_matplotlib_contour(
+    contour_type='cae_inner',
+    random_offset=True,
+    max_offset=1.5
+)
+
+# 固定オフセット
+create_matplotlib_contour(
+    contour_type='cae_inner',
+    offset_x=0.5,
+    offset_y=-0.3
+)
+```
+
 ## ファイル名の命名規則
 
 生成されるファイル名は以下の形式です：

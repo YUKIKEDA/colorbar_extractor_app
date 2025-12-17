@@ -12,7 +12,8 @@ from contour_utils import (
     create_shape_mask,
     apply_mask_to_data,
     get_output_dir,
-    generate_filename
+    generate_filename,
+    generate_random_offset
 )
 
 
@@ -84,6 +85,11 @@ def create_plotly_contour(
     save: bool = True,
     output_dir: Optional[Path] = None,
     show: bool = False,
+    random_offset: bool = False,
+    max_offset: float = 1.0,
+    offset_x: Optional[float] = None,
+    offset_y: Optional[float] = None,
+    random_seed: Optional[int] = None,
     **shape_kwargs
 ) -> go.Figure:
     """
@@ -102,6 +108,11 @@ def create_plotly_contour(
         save: ファイルに保存するかどうか
         output_dir: 出力ディレクトリ
         show: 表示するかどうか
+        random_offset: マスク位置をランダムにずらすかどうか
+        max_offset: ランダムオフセットの最大量
+        offset_x: X方向の固定オフセット（random_offset=Falseの場合に使用）
+        offset_y: Y方向の固定オフセット（random_offset=Falseの場合に使用）
+        random_seed: ランダムシード（再現性のため）
         **shape_kwargs: 形状固有のパラメータ
     
     Returns:
@@ -112,7 +123,14 @@ def create_plotly_contour(
     
     # マスク処理
     if contour_type != 'standard':
-        mask = create_shape_mask(X, Y, shape=shape, **shape_kwargs)
+        # オフセットの決定
+        if random_offset:
+            off_x, off_y = generate_random_offset(max_offset, random_seed)
+        else:
+            off_x = offset_x if offset_x is not None else 0.0
+            off_y = offset_y if offset_y is not None else 0.0
+        
+        mask = create_shape_mask(X, Y, shape=shape, offset_x=off_x, offset_y=off_y, **shape_kwargs)
         Z = apply_mask_to_data(Z, mask, contour_type)
     
     # Plotlyのカラースケールに変換

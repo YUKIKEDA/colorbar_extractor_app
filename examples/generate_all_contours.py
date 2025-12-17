@@ -5,6 +5,7 @@
     python generate_all_contours.py --library all --colormaps all --output ./output
     python generate_all_contours.py --library matplotlib --colormaps viridis,plasma,jet
     python generate_all_contours.py --library plotly --positions right,top --types cae_inner
+    python generate_all_contours.py --random-offset --max-offset 1.5  # ランダムオフセット有効
 """
 
 import argparse
@@ -30,7 +31,9 @@ def generate_matplotlib_contours(
     orientations: List[str],
     contour_types: List[str],
     shapes: List[str],
-    output_dir: Path
+    output_dir: Path,
+    random_offset: bool = False,
+    max_offset: float = 1.0
 ) -> int:
     """Matplotlibでコンター図を生成"""
     from contour_base_mpl import create_matplotlib_contour
@@ -56,6 +59,8 @@ def generate_matplotlib_contours(
                 output_dir=output_dir / 'matplotlib',
                 save=True,
                 show=False,
+                random_offset=random_offset,
+                max_offset=max_offset,
                 **{k: v for k, v in shape_params.items() if k != 'shape'}
             )
         except Exception as e:
@@ -70,7 +75,9 @@ def generate_plotly_contours(
     orientations: List[str],
     contour_types: List[str],
     shapes: List[str],
-    output_dir: Path
+    output_dir: Path,
+    random_offset: bool = False,
+    max_offset: float = 1.0
 ) -> int:
     """Plotlyでコンター図を生成"""
     from contour_base_plotly import create_plotly_contour
@@ -96,6 +103,8 @@ def generate_plotly_contours(
                 output_dir=output_dir / 'plotly',
                 save=True,
                 show=False,
+                random_offset=random_offset,
+                max_offset=max_offset,
                 **{k: v for k, v in shape_params.items() if k != 'shape'}
             )
         except Exception as e:
@@ -110,7 +119,9 @@ def generate_bokeh_contours(
     orientations: List[str],
     contour_types: List[str],
     shapes: List[str],
-    output_dir: Path
+    output_dir: Path,
+    random_offset: bool = False,
+    max_offset: float = 1.0
 ) -> int:
     """Bokehでコンター図を生成"""
     from contour_base_bokeh import create_bokeh_contour
@@ -136,6 +147,8 @@ def generate_bokeh_contours(
                 output_dir=output_dir / 'bokeh',
                 save_file=True,
                 show=False,
+                random_offset=random_offset,
+                max_offset=max_offset,
                 **{k: v for k, v in shape_params.items() if k != 'shape'}
             )
         except Exception as e:
@@ -188,6 +201,17 @@ def main():
         type=str,
         default=None,
         help='出力ディレクトリ'
+    )
+    parser.add_argument(
+        '--random-offset', '-r',
+        action='store_true',
+        help='マスク位置をランダムにずらす（CAEタイプのみ有効）'
+    )
+    parser.add_argument(
+        '--max-offset', '-m',
+        type=float,
+        default=1.0,
+        help='ランダムオフセットの最大量（デフォルト: 1.0）'
     )
     
     args = parser.parse_args()
@@ -251,6 +275,7 @@ def main():
     print(f"向き: {orientations}")
     print(f"タイプ: {contour_types}")
     print(f"形状: {shapes}")
+    print(f"ランダムオフセット: {args.random_offset} (最大: {args.max_offset})")
     print(f"合計生成数: {total}")
     print(f"出力先: {output_dir}")
     print("=" * 40 + "\n")
@@ -261,21 +286,24 @@ def main():
     # 各ライブラリで生成
     if 'matplotlib' in libraries:
         count = generate_matplotlib_contours(
-            colormaps, positions, orientations, contour_types, shapes, output_dir
+            colormaps, positions, orientations, contour_types, shapes, output_dir,
+            random_offset=args.random_offset, max_offset=args.max_offset
         )
         total_count += count
         print(f"\nMatplotlib: {count} ファイル生成完了\n")
     
     if 'plotly' in libraries:
         count = generate_plotly_contours(
-            colormaps, positions, orientations, contour_types, shapes, output_dir
+            colormaps, positions, orientations, contour_types, shapes, output_dir,
+            random_offset=args.random_offset, max_offset=args.max_offset
         )
         total_count += count
         print(f"\nPlotly: {count} ファイル生成完了\n")
     
     if 'bokeh' in libraries:
         count = generate_bokeh_contours(
-            colormaps, positions, orientations, contour_types, shapes, output_dir
+            colormaps, positions, orientations, contour_types, shapes, output_dir,
+            random_offset=args.random_offset, max_offset=args.max_offset
         )
         total_count += count
         print(f"\nBokeh: {count} ファイル生成完了\n")
